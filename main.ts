@@ -12,13 +12,36 @@
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+
+// Check the screenshot set before anything is copied or scored. shots.json names one
+// file per staged scene; each of those files has to sit in screenshots/, be a real
+// JPEG or PNG (checked by magic bytes, not by its name), and fit the scorer's
+// 256 KiB per-screenshot cap. A set that fails here would be refused by the scorer
+// anyway, so fail now and say exactly which file is wrong.
+const SHOT_LIMIT = 262144; // 256 KiB
+const scenes = JSON.parse(readFileSync(join(here, 'shots.json'), 'utf8'));
+for (const scene of scenes) {
+  const shotFile = join(here, 'screenshots', scene.name);
+  if (!existsSync(shotFile)) {
+    throw new Error(`shots.json lists "${scene.name}" but screenshots/${scene.name} does not exist`);
+  }
+  const shot = readFileSync(shotFile);
+  if (shot.length > SHOT_LIMIT) {
+    throw new Error(`screenshots/${scene.name} is ${shot.length} bytes, over the 256 KiB cap`);
+  }
+  const jpeg = shot[0] === 0xff && shot[1] === 0xd8;
+  const png = shot.length > 3 && shot[0] === 0x89 && shot[1] === 0x50 && shot[2] === 0x4e && shot[3] === 0x47;
+  if (!jpeg && !png) {
+    throw new Error(`screenshots/${scene.name} is not a JPEG or PNG image`);
+  }
+}
 
 mkdirSync(out, { recursive: true });
 cpSync(join(here, 'game'), join(out, 'game'), { recursive: true });

@@ -1,3 +1,4 @@
+<!-- Marisol Heat: an original open-world crime game, built by an AI agent for make.fun's gta6-01 bounty. main.ts hands the game in; the game itself lives in game/. -->
 # gta6
 
 [![make.fun · gta6-01](https://make.fun/badge/gta6-01.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
